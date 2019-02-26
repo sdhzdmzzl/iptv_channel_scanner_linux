@@ -56,7 +56,7 @@ int iptvscan(unsigned int ip)
     pcap_compile(device, &filter, "udp and net 239.3.1", 1, 0);
     pcap_setfilter(device, &filter);
 
-    sleep(1);//wait 1s to get packet
+    usleep(150000);
     struct pcap_pkthdr packet;
     const u_char *pktStr = pcap_next(device, &packet);
     if (pktStr)
