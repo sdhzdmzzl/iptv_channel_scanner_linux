@@ -29,7 +29,7 @@ int iptvscan(unsigned int ip)
     s = socket(AF_INET, SOCK_DGRAM, 0); /*建立套接字*/
     if (s == -1)
     {
-        perror("socket()");
+       return -1; 
     }
 
     struct ip_mreq mreq;                           /*加入多播组*/
@@ -39,7 +39,7 @@ int iptvscan(unsigned int ip)
     err = setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
     if (err < 0)
     {
-        perror("setsockopt():IP_ADD_MEMBERSHIP");
+	return -1;
     }
 
     pcap_t *device = pcap_open_live("eno16780032", 65535, 1, 1, errBuf);//1ms超时，下边会留出时间填充数据包
@@ -56,8 +56,8 @@ int iptvscan(unsigned int ip)
     pcap_compile(device, &filter, "udp and net 239.3.1", 1, 0);
     pcap_setfilter(device, &filter);
 
+    sleep(1);//wait 1s to get packet
     struct pcap_pkthdr packet;
-    sleep(1); //留出时间供caputre
     const u_char *pktStr = pcap_next(device, &packet);
     if (pktStr)
     {
@@ -72,9 +72,11 @@ int iptvscan(unsigned int ip)
     err = setsockopt(s, IPPROTO_IP, IP_DROP_MEMBERSHIP, &mreq, sizeof(mreq));
     if (err < 0)
     {
-        perror("setsockopt():IP_DROP_MEMBERSHIP");
+	close(s);
+	return -1;
     }
     close(s);
+    return 0;
 }
 
 int main(int argc, char *argv[])
