@@ -4,7 +4,7 @@
 scan iptv channel in linux  
 	to compile it:  
 		g++ -g -o iptvscanner iptvscanner.cpp -lpcap  
+usage: 
+	./iptvscanner 239.3.1.1 254 
 todo:  
-	get netcard name  
-	custom ip range  
 	save m3u playlist  
