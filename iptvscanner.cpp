@@ -23,31 +23,13 @@
 using namespace std;
 
 pcap_if_t *d;
-char strfilter[64] = {0};
-
-int formatfilter(char *iprange)
-{
-    strcpy(strfilter, "udp and net ");
-    char *p = strrchr(iprange, '.');
-    if (p)
-    {
-        *p = 0;
-        strcat(strfilter, iprange);
-        *p = '.';
-        return 0;
-    }
-    else
-    {
-        return -1;
-    }
-}
 int iptvscan(unsigned int ip)
 
 {
     char errBuf[PCAP_ERRBUF_SIZE];
     int s; /*套接字文件描述符*/
     int err = -1;
-
+    ip = htonl(ip);
     s = socket(AF_INET, SOCK_DGRAM, 0); /*建立套接字*/
     if (s == -1)
     {
@@ -55,7 +37,7 @@ int iptvscan(unsigned int ip)
     }
 
     struct ip_mreq mreq;                           /*加入多播组*/
-    mreq.imr_multiaddr.s_addr = htonl(ip);         /*多播地址*/
+    mreq.imr_multiaddr.s_addr = ip;         /*多播地址*/
     mreq.imr_interface.s_addr = htonl(INADDR_ANY); /*网络接口为默认*/
 
     err = setsockopt(s, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char *)&mreq, sizeof(mreq));
@@ -72,7 +54,9 @@ int iptvscan(unsigned int ip)
         close(s);
         return -1;
     }
-
+    char strfilter[64] = "udp and host ";
+    char *strip = strfilter + strlen("udp and host ");
+    inet_ntop(AF_INET, &ip, strip, 16);
     /* construct a filter */
     struct bpf_program filter;
     pcap_compile(device, &filter, strfilter, 1, 0);
@@ -83,12 +67,8 @@ int iptvscan(unsigned int ip)
     const u_char *pktStr = pcap_next(device, &packet);
     if (pktStr)
     {
-        char strip[16] = {0};
-        struct iphdr *iphdr = NULL;
         struct udphdr *udphdr = NULL;
-        iphdr = (struct iphdr *)(pktStr + 14);
         udphdr = (struct udphdr *)(pktStr + 14 + 20);
-        inet_ntop(AF_INET, &iphdr->daddr, strip, 16);
         printf("#EXTINF:-1,%s:%d\nrtp://%s:%d\n", strip, ntohs(udphdr->dest), strip, ntohs(udphdr->dest));
     }
     pcap_close(device);
@@ -114,15 +94,9 @@ int main(int argc, char *argv[])
     if (argc != 3)
     {
         cout << "usage:" << endl
-             << "\t" << argv[0] << " "
-             << "\"start of ip range\" count" << endl;
-        cout << "\t eg.. " << argv[0] << " 239.3.1.1 254" << endl;
+             << "\t" << argv[0] <<" \"start of ip\" \"end of ip\" " << endl;
+        cout << "\t eg.. " << argv[0] << " 239.3.1.1 239.3.1.254" << endl;
         return -1;
-    }
-    int err = formatfilter(argv[1]);
-    if (err == -1)
-    {
-        cout << "error format ip" << endl;
     }
     if (pcap_findalldevs(&alldevs, errbuf) == -1)
     {
@@ -161,12 +135,14 @@ int main(int argc, char *argv[])
     for (d = alldevs, i = 0; i < inum - 1; d = d->next, i++)
         ;
 
-    unsigned int ip = 0;
-    inet_pton(AF_INET, argv[1], &ip);
-    ip = ntohl(ip);
-    for (int i = 0; i < atoi(argv[2]); i++)
+    unsigned int ipstart = 0, ipend = 0;
+    inet_pton(AF_INET, argv[1], &ipstart);
+    inet_pton(AF_INET, argv[2], &ipend);
+    ipstart = ntohl(ipstart);
+    ipend = ntohl(ipend);
+    for (int ip = ipstart; ip <= ipend; ip++)
     {
-        iptvscan(ip++);
+        iptvscan(ip);
     }
     pcap_freealldevs(alldevs);
 }
