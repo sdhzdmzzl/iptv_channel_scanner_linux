@@ -69,7 +69,11 @@ int iptvscan(unsigned int ip)
     {
         struct udphdr *udphdr = NULL;
         udphdr = (struct udphdr *)(pktStr + 14 + 20);
+#ifdef __linux
         printf("#EXTINF:-1,%s:%d\nrtp://%s:%d\n", strip, ntohs(udphdr->dest), strip, ntohs(udphdr->dest));
+#elif __APPLE__
+	printf("#EXTINF:-1,%s:%d\nrtp://%s:%d\n", strip, ntohs(udphdr->uh_dport), strip, ntohs(udphdr->uh_dport));
+#endif
     }
     pcap_close(device);
 
