@@ -22,7 +22,7 @@
 #include <iostream>
 using namespace std;
 
-pcap_if_t *d;
+char nicname[1024] = {0};
 int iptvscan(unsigned int ip)
 
 {
@@ -46,7 +46,7 @@ int iptvscan(unsigned int ip)
         return -1;
     }
 
-    pcap_t *device = pcap_open_live(d->name, 65535, 1, 1, errBuf); //1ms超时，下边会留出时间填充数据包
+    pcap_t *device = pcap_open_live(nicname, 65535, 1, 1, errBuf); //1ms超时，下边会留出时间填充数据包
 
     if (!device)
     {
@@ -109,6 +109,7 @@ int main(int argc, char *argv[])
     }
 
     /* 打印列表 */
+    pcap_if_t *d;
     for (d = alldevs; d; d = d->next)
     {
         printf("%d. %s", ++i, d->name);
@@ -124,7 +125,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    cout << "Enter the interface number (1-%d):" << i;
+    cout << "Enter the interface number (1-%d):";
     cin >> inum;
 
     if (inum < 1 || inum > i)
@@ -138,7 +139,8 @@ int main(int argc, char *argv[])
     /* 跳转到选中的适配器 */
     for (d = alldevs, i = 0; i < inum - 1; d = d->next, i++)
         ;
-
+    strncpy(nicname, d->name, sizeof(nicname));
+    pcap_freealldevs(alldevs);
     unsigned int ipstart = 0, ipend = 0;
     inet_pton(AF_INET, argv[1], &ipstart);
     inet_pton(AF_INET, argv[2], &ipend);
@@ -148,5 +150,4 @@ int main(int argc, char *argv[])
     {
         iptvscan(ip);
     }
-    pcap_freealldevs(alldevs);
 }
