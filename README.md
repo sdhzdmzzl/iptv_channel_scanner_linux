@@ -4,6 +4,8 @@
 to compile it:  
 		g++ -g -o iptvscanner iptvscanner.cpp -lpcap  
 usage: 
-	./iptvscanner 239.3.1.1 239.3.1.254
+	./iptvscanner 239.3.1.1 239.3.1.254  
 todo:  
 	save m3u playlist  
+  
+if you don't scan any channel,try to increase timeout by changeing usleep(150000) to sleep(1) or sleep(2)
